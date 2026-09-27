@@ -113,6 +113,18 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                       <span className="material-symbols-outlined text-headline-sm">person</span>
                       <span className="font-label-md text-label-md font-bold">Profilim</span>
                     </Link>
+
+                    <button 
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        setIsCreateCommunityModalOpen(true);
+                      }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-highest hover:text-secondary transition-colors w-full text-left"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-headline-sm">add_business</span>
+                      <span className="font-label-md text-label-md font-bold">Topluluk Kur</span>
+                    </button>
                     
                     <button 
                       className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-highest hover:text-primary transition-colors w-full text-left"
