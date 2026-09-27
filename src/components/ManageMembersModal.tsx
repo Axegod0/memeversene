@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 
 interface ManageMembersModalProps {
   room: any;
+  currentUserRole: string | null;
   onClose: () => void;
 }
 
-export function ManageMembersModal({ room, onClose }: ManageMembersModalProps) {
+export function ManageMembersModal({ room, currentUserRole, onClose }: ManageMembersModalProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,7 +67,7 @@ export function ManageMembersModal({ room, onClose }: ManageMembersModalProps) {
       <div className="absolute inset-0" onClick={onClose}></div>
       <div className="relative w-full max-w-lg bg-surface-container rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-container-highest shrink-0">
-          <h2 className="text-title-lg font-title-lg font-bold text-on-surface">Üyeleri ve Rolleri Yönet</h2>
+          <h2 className="text-title-lg font-title-lg font-bold text-on-surface">Topluluk Üyeleri</h2>
           <button 
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-surface-container-highest hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
@@ -101,24 +102,31 @@ export function ManageMembersModal({ room, onClose }: ManageMembersModalProps) {
                     </div>
                   </div>
                   
-                  {member.role !== 'owner' && (
+                  {/* Show actions only for owner or admin */}
+                  {currentUserRole && ['owner', 'admin'].includes(currentUserRole) && member.role !== 'owner' && (
                     <div className="flex items-center gap-2">
-                      <select 
-                        value={member.role}
-                        onChange={(e) => updateRole(member.user_id, e.target.value)}
-                        className="h-9 px-2 rounded-lg bg-surface-container text-body-sm text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary"
-                      >
-                        <option value="member">Üye</option>
-                        <option value="admin">Moderatör</option>
-                      </select>
+                      {/* Only owner can change roles */}
+                      {currentUserRole === 'owner' && (
+                        <select 
+                          value={member.role}
+                          onChange={(e) => updateRole(member.user_id, e.target.value)}
+                          className="h-9 px-2 rounded-lg bg-surface-container text-body-sm text-on-surface border border-outline-variant/30 focus:outline-none focus:border-primary"
+                        >
+                          <option value="member">Üye</option>
+                          <option value="admin">Moderatör</option>
+                        </select>
+                      )}
                       
-                      <button 
-                        onClick={() => kickMember(member.user_id)}
-                        className="w-9 h-9 rounded-lg bg-error-container/20 hover:bg-error text-error hover:text-on-error flex items-center justify-center transition-colors"
-                        title="Üyeyi Çıkar"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">person_remove</span>
-                      </button>
+                      {/* Owner can kick anyone (except owner), Admin can kick only members */}
+                      {(currentUserRole === 'owner' || (currentUserRole === 'admin' && member.role === 'member')) && (
+                        <button 
+                          onClick={() => kickMember(member.user_id)}
+                          className="w-9 h-9 rounded-lg bg-error-container/20 hover:bg-error text-error hover:text-on-error flex items-center justify-center transition-colors"
+                          title="Üyeyi Çıkar"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

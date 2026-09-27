@@ -27,6 +27,7 @@ export function Home() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRoomRoles, setUserRoomRoles] = useState<Record<string, string>>({});
   const [votingPostId, setVotingPostId] = useState<string | null>(null);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
   useEffect(() => {
     if (roomSlug) {
@@ -258,6 +259,13 @@ export function Home() {
               >
                 <span className="material-symbols-outlined text-[20px]">share</span>
                 <span className="hidden sm:inline">Davet Et</span>
+              </button>
+              <button 
+                onClick={() => setIsMembersModalOpen(true)}
+                className="h-10 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface hover:text-primary transition-all flex items-center gap-2 shadow-sm font-label-lg font-bold"
+              >
+                <span className="material-symbols-outlined text-[20px]">group</span>
+                <span className="hidden sm:inline">Üyeler</span>
               </button>
               <button aria-label="Bildirimleri Aç" className="w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-primary transition-all flex items-center justify-center shadow-sm">
                 <span className="material-symbols-outlined text-headline-sm">notifications_active</span>

@@ -20,6 +20,7 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   const [isEditRoomModalOpen, setIsEditRoomModalOpen] = useState(false);
   const [isManageMembersModalOpen, setIsManageMembersModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
   const match = location.pathname.match(/\/rooms\/([^/]+)/);
@@ -72,6 +73,22 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
         .select('*', { count: 'exact', head: true })
         .eq('room_id', currentRoom.id)
         .then(({count}) => setMemberCount(count || 0));
+
+      if (currentUser) {
+        supabase.from('room_members')
+          .select('role')
+          .eq('room_id', currentRoom.id)
+          .eq('user_id', currentUser.id)
+          .single()
+          .then(({data}) => {
+            if (data) setCurrentUserRole(data.role);
+            else setCurrentUserRole(null);
+          });
+      } else {
+        setCurrentUserRole(null);
+      }
+    } else {
+      setCurrentUserRole(null);
     }
   }, [currentRoom, isManageMembersModalOpen, currentUser]);
 
@@ -396,12 +413,10 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {currentUser?.id === currentRoom.owner_id && (
-                          <button onClick={() => setIsManageMembersModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Üyeleri Yönet">
-                            <span className="material-symbols-outlined text-[18px]">group</span>
-                          </button>
-                        )}
-                        {currentUser?.id === currentRoom.owner_id && (
+                        <button onClick={() => setIsManageMembersModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title={currentUserRole && ['owner', 'admin'].includes(currentUserRole) ? "Üyeleri Yönet" : "Üyeler"}>
+                          <span className="material-symbols-outlined text-[18px]">group</span>
+                        </button>
+                        {currentUserRole === 'owner' && (
                           <button onClick={() => setIsEditRoomModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Topluluğu Düzenle">
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
@@ -549,6 +564,7 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
       {isManageMembersModalOpen && currentRoom && (
         <ManageMembersModal
           room={currentRoom}
+          currentUserRole={currentUserRole}
           onClose={() => setIsManageMembersModalOpen(false)}
         />
       )}
