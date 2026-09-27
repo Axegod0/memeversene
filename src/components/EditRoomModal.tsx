@@ -109,9 +109,10 @@ export function EditRoomModal({ room, onClose, onSuccess }: EditRoomModalProps) 
               type="url" 
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://.../resim.png"
+              placeholder="https://i.pinimg.com/... (Resim adresini kopyala)"
               className="w-full h-12 px-4 rounded-xl bg-surface-container-lowest text-on-surface placeholder:text-outline border border-outline-variant/30 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-body-md"
             />
+            <span className="text-label-sm text-outline px-1">Görselin üzerine sağ tıklayıp "Resim adresini kopyala" diyerek Pinterest vs. linklerini yapıştırabilirsiniz.</span>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -120,7 +121,7 @@ export function EditRoomModal({ room, onClose, onSuccess }: EditRoomModalProps) 
               type="url" 
               value={bannerUrl}
               onChange={(e) => setBannerUrl(e.target.value)}
-              placeholder="https://.../banner.jpg"
+              placeholder="https://i.pinimg.com/... (Resim adresini kopyala)"
               className="w-full h-12 px-4 rounded-xl bg-surface-container-lowest text-on-surface placeholder:text-outline border border-outline-variant/30 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-body-md"
             />
           </div>
