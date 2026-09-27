@@ -78,6 +78,7 @@ alter publication supabase_realtime add table public.comments;
 -- RLS (Row Level Security)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.room_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
@@ -85,6 +86,7 @@ ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
 -- Allow public read access
 CREATE POLICY "Public read access on profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Public read access on rooms" ON public.rooms FOR SELECT USING (true);
+CREATE POLICY "Public read access on room_members" ON public.room_members FOR SELECT USING (true);
 CREATE POLICY "Public read access on posts" ON public.posts FOR SELECT USING (true);
 CREATE POLICY "Public read access on comments" ON public.comments FOR SELECT USING (true);
 CREATE POLICY "Public read access on votes" ON public.votes FOR SELECT USING (true);
@@ -92,6 +94,9 @@ CREATE POLICY "Public read access on votes" ON public.votes FOR SELECT USING (tr
 -- Allow authenticated users to insert/update their own data
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert rooms" ON public.rooms FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Users can insert room members" ON public.room_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can insert comments" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
