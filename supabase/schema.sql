@@ -101,7 +101,30 @@ CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE
 
 CREATE POLICY "Users can insert rooms" ON public.rooms FOR INSERT WITH CHECK (auth.uid() = owner_id);
 CREATE POLICY "Users can update their own rooms" ON public.rooms FOR UPDATE USING (auth.uid() = owner_id);
+
+-- Members can join (insert themselves)
 CREATE POLICY "Users can insert room members" ON public.room_members FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Users can leave (delete themselves), and admins/owners can kick
+CREATE POLICY "Users can leave or admins can delete room members" ON public.room_members FOR DELETE USING (
+  auth.uid() = user_id OR
+  EXISTS (
+    SELECT 1 FROM public.room_members rm 
+    WHERE rm.room_id = room_members.room_id 
+    AND rm.user_id = auth.uid() 
+    AND rm.role IN ('owner', 'admin')
+  )
+);
+
+-- Admins/owners can update roles
+CREATE POLICY "Admins can update room members" ON public.room_members FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM public.room_members rm 
+    WHERE rm.room_id = room_members.room_id 
+    AND rm.user_id = auth.uid() 
+    AND rm.role IN ('owner', 'admin')
+  )
+);
 
 CREATE POLICY "Users can insert posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can insert comments" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);

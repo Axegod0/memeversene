@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { CreatePostModal } from './CreatePostModal';
 import { CreateCommunityModal } from './CreateCommunityModal';
 import { EditRoomModal } from './EditRoomModal';
+import { ManageMembersModal } from './ManageMembersModal';
 import { AdSlot } from './AdSlot';
 import { supabase } from '../lib/supabase';
 
@@ -15,7 +16,9 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   const [myRooms, setMyRooms] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentRoom, setCurrentRoom] = useState<any>(null);
+  const [moderators, setModerators] = useState<any[]>([]);
   const [isEditRoomModalOpen, setIsEditRoomModalOpen] = useState(false);
+  const [isManageMembersModalOpen, setIsManageMembersModalOpen] = useState(false);
 
   // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
   const match = location.pathname.match(/\/rooms\/([^/]+)/);
@@ -45,10 +48,29 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   useEffect(() => {
     if (currentRoomSlug) {
       supabase.from('rooms').select('*').eq('slug', currentRoomSlug).single().then(({data}) => setCurrentRoom(data));
+      
+      // Fetch moderators
+      supabase.from('room_members')
+        .select('role, profiles(username)')
+        .eq('rooms.slug', currentRoomSlug) // Wait, we need room_id. Let's fetch using roomSlug via join
+        // Actually, we can just fetch it after currentRoom is set
     } else {
       setCurrentRoom(null);
+      setModerators([]);
     }
   }, [currentRoomSlug, isEditRoomModalOpen]);
+
+  useEffect(() => {
+    if (currentRoom) {
+      supabase.from('room_members')
+        .select('role, profiles(username)')
+        .eq('room_id', currentRoom.id)
+        .in('role', ['owner', 'admin'])
+        .then(({data}) => {
+          if (data) setModerators(data);
+        });
+    }
+  }, [currentRoom, isManageMembersModalOpen]);
 
   return (
     <div className="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
@@ -365,11 +387,18 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                           </div>
                         )}
                       </div>
-                      {currentUser?.id === currentRoom.owner_id && (
-                        <button onClick={() => setIsEditRoomModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {currentUser?.id === currentRoom.owner_id && (
+                          <button onClick={() => setIsManageMembersModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Üyeleri Yönet">
+                            <span className="material-symbols-outlined text-[18px]">group</span>
+                          </button>
+                        )}
+                        {currentUser?.id === currentRoom.owner_id && (
+                          <button onClick={() => setIsEditRoomModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Topluluğu Düzenle">
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {currentRoom.avatar_url && (
                       <div className="font-headline-sm font-bold text-on-surface mt-1">{currentRoom.name}</div>
@@ -394,13 +423,22 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                     <div className="flex flex-col gap-2 pt-1 border-t border-outline-variant/20">
                       <div className="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Moderatörler</div>
                       <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between py-1">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary-container font-label-sm font-bold flex items-center justify-center">M</span>
-                            <span className="font-label-md text-label-md text-on-surface">u/mizah_patronu</span>
+                        {moderators.map((mod, i) => (
+                          <div key={i} className="flex items-center justify-between py-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary-container font-label-sm font-bold flex items-center justify-center">
+                                {mod.profiles?.username?.charAt(0).toUpperCase() || 'M'}
+                              </span>
+                              <Link to={`/u/${mod.profiles?.username}`} className="font-label-md text-label-md text-on-surface hover:text-primary transition-colors">
+                                u/{mod.profiles?.username}
+                              </Link>
+                            </div>
+                            <span className="font-label-sm text-label-sm text-outline capitalize">{mod.role === 'owner' ? 'Kurucu' : 'Moderatör'}</span>
                           </div>
-                          <span className="font-label-sm text-label-sm text-outline">Baş Mod</span>
-                        </div>
+                        ))}
+                        {moderators.length === 0 && (
+                          <span className="text-body-sm text-outline">Moderatör bulunamadı.</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -506,6 +544,13 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
             setCurrentRoom(updated);
             setIsEditRoomModalOpen(false);
           }}
+        />
+      )}
+
+      {isManageMembersModalOpen && currentRoom && (
+        <ManageMembersModal
+          room={currentRoom}
+          onClose={() => setIsManageMembersModalOpen(false)}
         />
       )}
     </div>
