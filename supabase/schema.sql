@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE TABLE IF NOT EXISTS public.rooms (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL
+  slug TEXT UNIQUE NOT NULL,
+  owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Insert Default Rooms
@@ -22,6 +24,19 @@ INSERT INTO public.rooms (name, slug) VALUES
 ('oyun', 'oyun'),
 ('yazilim', 'yazilim')
 ON CONFLICT (slug) DO NOTHING;
+
+-- Room Members Table
+CREATE TABLE IF NOT EXISTS public.room_members (
+  room_id UUID REFERENCES public.rooms(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member', -- 'owner', 'admin', 'member'
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (room_id, user_id)
+);
+
+-- Enable Realtime
+alter publication supabase_realtime add table public.rooms;
+alter publication supabase_realtime add table public.room_members;
 
 -- Posts Table
 CREATE TABLE IF NOT EXISTS public.posts (

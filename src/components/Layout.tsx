@@ -2,12 +2,37 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { CreatePostModal } from './CreatePostModal';
+import { CreateCommunityModal } from './CreateCommunityModal';
 import { AdSlot } from './AdSlot';
+import { supabase } from '../lib/supabase';
 
 export function Layout({ children, onLogout, username }: { children: ReactNode, onLogout: () => void, username?: string }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateCommunityModalOpen, setIsCreateCommunityModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const location = useLocation();
+  const [myRooms, setMyRooms] = useState<any[]>([]);
+
+  // Toplulukları getir
+  useEffect(() => {
+    const fetchMyRooms = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      
+      const { data, error } = await supabase
+        .from('room_members')
+        .select('rooms(id, name, slug)')
+        .eq('user_id', userData.user.id);
+        
+      if (!error && data) {
+        // @ts-ignore
+        setMyRooms(data.map(item => item.rooms).filter(Boolean));
+      }
+    };
+    
+    fetchMyRooms();
+  }, [isCreateCommunityModalOpen]); // Modal kapanınca yenile
+
 
   // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
   const match = location.pathname.match(/\/rooms\/([^/]+)/);
@@ -154,16 +179,41 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
             <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md flex flex-col gap-2">
                 <div className="flex items-center justify-between px-2 pt-1 pb-1">
                   <span className="text-label-sm font-label-sm uppercase tracking-wider text-outline">Topluluklar / Odalar</span>
+                  <button 
+                    onClick={() => setIsCreateCommunityModalOpen(true)}
+                    className="w-6 h-6 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
+                    title="Yeni Topluluk Kur"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                  </button>
                 </div>
-                <div className="flex flex-col items-center justify-center py-6 px-2 text-center gap-2 bg-surface-container-lowest/50 rounded-xl border border-outline-variant/10">
-                  <span className="material-symbols-outlined text-outline text-[32px] opacity-50 mb-1">mark_email_unread</span>
-                  <p className="text-body-sm font-body-sm text-on-surface-variant leading-snug">
-                    Henüz hiçbir topluluğa katılmadın.
-                  </p>
-                  <p className="text-label-sm font-label-sm text-primary font-bold">
-                    Sadece davet ile katılabilirsin!
-                  </p>
-                </div>
+                
+                {myRooms.length > 0 ? (
+                  <div className="flex flex-col gap-1 mt-1">
+                    {myRooms.map(room => (
+                      <NavLink 
+                        key={room.id}
+                        to={`/rooms/${room.slug}`} 
+                        className={({isActive}) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md transition-colors ${isActive ? 'bg-primary-container text-on-primary-container font-bold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+                      >
+                        <div className="w-6 h-6 rounded-md bg-surface-container-highest flex items-center justify-center text-outline text-[12px] font-bold">
+                          {room.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="truncate">{room.name}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 px-2 text-center gap-2 bg-surface-container-lowest/50 rounded-xl border border-outline-variant/10">
+                    <span className="material-symbols-outlined text-outline text-[32px] opacity-50 mb-1">mark_email_unread</span>
+                    <p className="text-body-sm font-body-sm text-on-surface-variant leading-snug">
+                      Henüz hiçbir topluluğa katılmadın.
+                    </p>
+                    <p className="text-label-sm font-label-sm text-primary font-bold">
+                      Sadece davet ile katılabilirsin!
+                    </p>
+                  </div>
+                )}
               </div>
           </aside>
 
@@ -220,9 +270,23 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                       <span className="material-symbols-outlined text-secondary text-headline-md">shield_person</span>
                       <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">Yönettiği Odalar</h3>
                     </div>
-                    <div className="flex flex-col items-center justify-center p-4 text-center rounded-xl bg-surface-container-low/50 border border-outline-variant/10">
-                      <span className="text-body-sm font-body-sm text-outline">Henüz yönetilen bir oda yok.</span>
-                    </div>
+                    {myRooms.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {myRooms.map(room => (
+                          <Link key={room.id} to={`/rooms/${room.slug}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-high transition-colors">
+                            <div className="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center text-outline text-[14px] font-bold">
+                              {room.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-body-sm font-bold text-on-surface flex-1 truncate">{room.name}</span>
+                            <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-4 text-center rounded-xl bg-surface-container-low/50 border border-outline-variant/10">
+                        <span className="text-body-sm font-body-sm text-outline">Henüz yönetilen bir oda yok.</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 rounded-2xl bg-surface-container shadow-lg border border-outline-variant/20">
@@ -358,7 +422,17 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
       </div>
 
       {isCreateModalOpen && (
-        <CreatePostModal onClose={() => setIsCreateModalOpen(false)} defaultRoomSlug={currentRoomSlug} />
+        <CreatePostModal onClose={() => setIsCreateModalOpen(false)} defaultRoomSlug={currentRoomSlug || undefined} />
+      )}
+
+      {isCreateCommunityModalOpen && (
+        <CreateCommunityModal
+          onClose={() => setIsCreateCommunityModalOpen(false)}
+          onSuccess={(slug) => {
+            setIsCreateCommunityModalOpen(false);
+            window.location.href = `/rooms/${slug}`;
+          }}
+        />
       )}
     </div>
   );
