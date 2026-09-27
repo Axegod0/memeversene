@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { parseVideoUrl } from '../lib/utils';
 
@@ -22,6 +22,45 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+      alert('Dosya boyutu 50MB\'dan büyük olamaz.');
+      return;
+    }
+
+    setLoading(true);
+    setLoadingStatus('Dosya yükleniyor...');
+    setProgress(20);
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('media')
+      .upload(filePath, file);
+
+    setProgress(80);
+
+    if (uploadError) {
+      alert('Dosya yüklenirken bir hata oluştu: ' + uploadError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('media')
+      .getPublicUrl(filePath);
+
+    setUrl(publicUrlData.publicUrl);
+    setLoading(false);
+    setProgress(100);
+  };
 
   // Live preview parsing
   const parsedPreview = url ? parseVideoUrl(url) : null;
@@ -198,9 +237,20 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
           
           {/* Tab Bar for Post Types */}
           <div className="p-1 rounded-xl bg-surface-container flex gap-1 shadow-inner">
-            <button className="flex-1 py-2.5 px-3 rounded-lg bg-surface-container-high text-primary font-headline-sm text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(224,135,152,0.15)] transition-all" type="button">
-              <span className="material-symbols-outlined text-headline-sm">perm_media</span>
-              <span>Görsel / GIF / Video</span>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*,video/mp4,video/webm,image/gif"
+              className="hidden" 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 py-2.5 px-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-headline-sm text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(224,135,152,0.15)] transition-all" 
+              type="button"
+            >
+              <span className="material-symbols-outlined text-headline-sm">upload_file</span>
+              <span>Görsel / GIF / Video Yükle</span>
             </button>
           </div>
           

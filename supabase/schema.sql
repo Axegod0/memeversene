@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
   room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
   caption TEXT NOT NULL,
   video_url TEXT NOT NULL,
-  video_type TEXT NOT NULL CHECK (video_type IN ('youtube', 'tiktok', 'tiktok_native', 'image')),
+  video_type TEXT NOT NULL CHECK (video_type IN ('youtube', 'tiktok', 'tiktok_native', 'image', 'video')),
   video_id TEXT NOT NULL,
   upvotes INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -176,3 +176,11 @@ DROP TRIGGER IF EXISTS on_vote_changed ON public.votes;
 CREATE TRIGGER on_vote_changed
   AFTER INSERT OR UPDATE OR DELETE ON public.votes
   FOR EACH ROW EXECUTE PROCEDURE public.update_post_upvotes();
+
+-- Enable storage extensions if not present
+INSERT INTO storage.buckets (id, name, public) VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS Policies
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'media');
+CREATE POLICY "Authenticated users can upload media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');

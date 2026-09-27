@@ -8,7 +8,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image';
+  video_type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image' | 'video';
   video_id: string;
   upvotes: number;
   created_at: string;
@@ -80,7 +80,7 @@ export function PostCard({ post, onVote, userVote = 0, canDelete, onDelete }: Po
                 allowFullScreen
               ></iframe>
             )}
-            {post.video_type === 'tiktok_native' && (
+            {(post.video_type === 'tiktok_native' || post.video_type === 'video') && (
               <video 
                 src={post.video_url} 
                 className="w-full h-full object-cover" 

@@ -1,4 +1,4 @@
-export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image' | null, id: string | null } {
+export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image' | 'video' | null, id: string | null } {
   if (!url) return { type: null, id: null };
 
   // YouTube Parser
@@ -16,6 +16,11 @@ export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'tikt
   // Check if it ends with an image extension or contains known image domains
   if (url.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || url.includes('pinimg.com/')) {
     return { type: 'image', id: url }; // For images, we use the full url as the ID
+  }
+
+  // Generic Video Parser
+  if (url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+    return { type: 'video', id: url }; // For raw videos, use the full url
   }
 
   return { type: null, id: null };
