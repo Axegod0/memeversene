@@ -18,7 +18,7 @@ export function AdSlot({ type = 'sidebar' }: { type?: 'sidebar' | 'feed' }) {
   }, []);
 
   // Eğer henüz AdSense ID girilmediyse (Geliştirme aşaması) şık yer tutucularımızı gösterelim
-  if (!GOOGLE_AD_CLIENT) {
+  if (!GOOGLE_AD_CLIENT || window.location.hostname === 'localhost') {
     if (type === 'sidebar') {
       return (
         <div className="p-4 rounded-xl bg-surface-container shadow-sm border border-outline-variant/30 flex flex-col items-center justify-center text-center overflow-hidden relative group">
@@ -48,8 +48,9 @@ export function AdSlot({ type = 'sidebar' }: { type?: 'sidebar' | 'feed' }) {
   // Gerçek Google AdSense HTML Kodu
   if (type === 'sidebar') {
     return (
-      <div className="w-full overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container">
-        <ins className="adsbygoogle"
+      <div className="w-full relative min-h-[250px] bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/10 flex items-center justify-center">
+        <span className="absolute text-outline text-[10px] uppercase font-bold top-2 right-2 opacity-50 z-0">Reklam Alanı</span>
+        <ins className="adsbygoogle relative z-10 w-full h-full"
             style={{ display: 'block' }}
             data-ad-client={GOOGLE_AD_CLIENT}
             data-ad-slot={GOOGLE_AD_SLOT_SIDEBAR}
@@ -60,8 +61,9 @@ export function AdSlot({ type = 'sidebar' }: { type?: 'sidebar' | 'feed' }) {
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-low">
-      <ins className="adsbygoogle"
+    <div className="w-full relative min-h-[120px] mb-6 bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/10 flex items-center justify-center">
+      <span className="absolute text-outline text-[10px] uppercase font-bold top-2 right-2 opacity-50 z-0">Sponsorlu Bağlantı</span>
+      <ins className="adsbygoogle relative z-10 w-full h-full"
           style={{ display: 'block', textAlign: 'center' }}
           data-ad-layout="in-article"
           data-ad-format="fluid"

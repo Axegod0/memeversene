@@ -37,12 +37,12 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
           <div className="flex items-center gap-space-sm shrink-0">
             <Link to="/messages" aria-label="Mesajlar" className="relative w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors">
               <span className="material-symbols-outlined text-headline-sm">chat</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface-container-lowest shadow-[0_0_8px_rgba(113,202,201,0.8)]"></span>
+              {false && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface-container-lowest shadow-[0_0_8px_rgba(113,202,201,0.8)]"></span>}
             </Link>
             
             <Link to="/notifications" aria-label="Bildirimler" className="relative w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors">
               <span className="material-symbols-outlined text-headline-sm">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-surface-container-lowest shadow-[0_0_8px_rgba(255,178,191,0.8)]"></span>
+              {false && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-surface-container-lowest shadow-[0_0_8px_rgba(255,178,191,0.8)]"></span>}
             </Link>
             
             <button 
