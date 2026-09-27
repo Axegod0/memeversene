@@ -27,7 +27,6 @@ export function Home() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRoomRoles, setUserRoomRoles] = useState<Record<string, string>>({});
   const [votingPostId, setVotingPostId] = useState<string | null>(null);
-  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
   useEffect(() => {
     if (roomSlug) {
@@ -135,6 +134,46 @@ export function Home() {
         filteredData = data.filter(p => p.rooms?.is_public !== false);
       }
       setPosts(filteredData as Post[]);
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!currentUserId || !currentRoom) return alert('Lütfen önce giriş yapın.');
+    
+    const { error } = await supabase.from('room_members').insert({
+      room_id: currentRoom.id,
+      user_id: currentUserId,
+      role: 'member'
+    });
+
+    if (error) {
+      alert('Katılırken hata oluştu: ' + error.message);
+    } else {
+      setUserRoomRoles(prev => ({ ...prev, [currentRoom.id]: 'member' }));
+    }
+  };
+
+  const handleLeaveRoom = async () => {
+    if (!currentUserId || !currentRoom) return;
+
+    if (currentRoom.owner_id === currentUserId) {
+      return alert('Odanın kurucusu odadan ayrılamaz.');
+    }
+
+    if (!confirm('Bu topluluktan ayrılmak istediğinize emin misiniz?')) return;
+
+    const { error } = await supabase.from('room_members').delete()
+      .eq('room_id', currentRoom.id)
+      .eq('user_id', currentUserId);
+
+    if (error) {
+      alert('Ayrılırken hata oluştu: ' + error.message);
+    } else {
+      setUserRoomRoles(prev => {
+        const newRoles = { ...prev };
+        delete newRoles[currentRoom.id];
+        return newRoles;
+      });
     }
   };
 
@@ -260,20 +299,29 @@ export function Home() {
                 <span className="material-symbols-outlined text-[20px]">share</span>
                 <span className="hidden sm:inline">Davet Et</span>
               </button>
-              <button 
-                onClick={() => setIsMembersModalOpen(true)}
-                className="h-10 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface hover:text-primary transition-all flex items-center gap-2 shadow-sm font-label-lg font-bold"
-              >
-                <span className="material-symbols-outlined text-[20px]">group</span>
-                <span className="hidden sm:inline">Üyeler</span>
-              </button>
+
               <button aria-label="Bildirimleri Aç" className="w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-primary transition-all flex items-center justify-center shadow-sm">
                 <span className="material-symbols-outlined text-headline-sm">notifications_active</span>
               </button>
-              <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-secondary to-primary-container hover:from-secondary-fixed hover:to-primary text-on-primary-container font-label-lg text-label-lg font-bold shadow-lg shadow-primary-container/25 hover:shadow-primary-container/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
-                <span className="material-symbols-outlined text-headline-sm">check</span>
-                <span>Katıldın</span>
-              </button>
+              {currentRoom && userRoomRoles[currentRoom.id] ? (
+                <button 
+                  onClick={handleLeaveRoom}
+                  className="h-10 px-5 rounded-xl bg-surface-container-high hover:bg-error-container/20 text-on-surface hover:text-error font-label-lg text-label-lg font-bold shadow-sm transition-all flex items-center gap-2 group"
+                >
+                  <span className="material-symbols-outlined text-headline-sm group-hover:hidden">check</span>
+                  <span className="material-symbols-outlined text-headline-sm hidden group-hover:block">logout</span>
+                  <span className="group-hover:hidden">Katıldın</span>
+                  <span className="hidden group-hover:block">Ayrıl</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={handleJoinRoom}
+                  className="h-10 px-5 rounded-xl bg-gradient-to-r from-secondary to-primary-container hover:from-secondary-fixed hover:to-primary text-on-primary-container font-label-lg text-label-lg font-bold shadow-lg shadow-primary-container/25 hover:shadow-primary-container/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-headline-sm">add</span>
+                  <span>Katıl</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
