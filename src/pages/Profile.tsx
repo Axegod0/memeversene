@@ -27,6 +27,7 @@ export function Profile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     if (username) {
@@ -36,6 +37,11 @@ export function Profile() {
 
   const fetchProfileAndPosts = async (uname: string) => {
     setLoading(true);
+    
+    // Geçerli kullanıcıyı al (Takip Et / Düzenle butonu için)
+    const { data: userData } = await supabase.auth.getUser();
+    setCurrentUser(userData?.user || null);
+
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
@@ -126,15 +132,26 @@ export function Profile() {
             
             {/* Action Controls */}
             <div className="flex items-center gap-3 shrink-0">
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-label-lg font-label-lg transition-all shadow-md active:scale-95" type="button">
-                <span className="material-symbols-outlined text-headline-sm">edit</span>
-                <span>Profili Düzenle</span>
-              </button>
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-container to-secondary text-on-primary-container text-label-lg font-label-lg font-bold shadow-[0_0_20px_rgba(224,135,152,0.35)] hover:shadow-[0_0_28px_rgba(224,135,152,0.55)] hover:scale-102 active:scale-95 transition-all" type="button">
-                <span className="material-symbols-outlined text-headline-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
-                <span>Takip Et</span>
-              </button>
-              <button aria-label="Profili Paylaş" className="w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors shadow-md" type="button">
+              {currentUser?.id === profile.id ? (
+                <button onClick={() => alert("Profil düzenleme özelliği yakında aktif olacak!")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-label-lg font-label-lg transition-all shadow-md active:scale-95" type="button">
+                  <span className="material-symbols-outlined text-headline-sm">edit</span>
+                  <span>Profili Düzenle</span>
+                </button>
+              ) : (
+                <button onClick={() => alert("Takip etme özelliği yakında aktif olacak!")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-container to-secondary text-on-primary-container text-label-lg font-label-lg font-bold shadow-[0_0_20px_rgba(224,135,152,0.35)] hover:shadow-[0_0_28px_rgba(224,135,152,0.55)] hover:scale-102 active:scale-95 transition-all" type="button">
+                  <span className="material-symbols-outlined text-headline-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
+                  <span>Takip Et</span>
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Profil linki panoya kopyalandı!");
+                }}
+                aria-label="Profili Paylaş" 
+                className="w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors shadow-md" 
+                type="button"
+              >
                 <span className="material-symbols-outlined text-headline-sm">share</span>
               </button>
             </div>
