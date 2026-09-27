@@ -9,7 +9,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok';
+  video_type: 'youtube' | 'tiktok' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;
@@ -186,9 +186,15 @@ export function PostDetail() {
               </div>
 
               {/* Media Content */}
-              <div className="relative bg-surface-container-lowest w-full group overflow-hidden">
-                <div className="relative w-full aspect-video flex items-center justify-center bg-surface-container-lowest">
-                  {(() => {
+              <div className="relative bg-surface-container-lowest w-full group overflow-hidden flex justify-center bg-black/5">
+                <div className={`relative w-full flex items-center justify-center bg-surface-container-lowest ${post.video_type === 'image' ? 'bg-transparent' : 'aspect-video'}`}>
+                  {post.video_type === 'image' ? (
+                    <img 
+                      src={post.video_id} 
+                      alt={post.caption} 
+                      className="w-full h-auto max-h-[700px] object-contain" 
+                    />
+                  ) : (() => {
                     const Player = ReactPlayer as any;
                     return (
                       <Player 
@@ -201,9 +207,6 @@ export function PostDetail() {
                       />
                     );
                   })()}
-                  {/* Decorative overlays for native look (disabled for full player functionality, but kept in code for design references)
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-90"></div>
-                  */}
                 </div>
               </div>
 

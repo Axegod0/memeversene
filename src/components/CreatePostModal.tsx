@@ -69,8 +69,8 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
 
     setLoading(true);
     const parsed = parseVideoUrl(url);
-    if (!parsed) {
-      alert('Sadece YouTube ve TikTok linkleri desteklenmektedir.');
+    if (!parsed || !parsed.type) {
+      alert('Sadece YouTube, TikTok veya Resim bağlantıları desteklenmektedir.');
       setLoading(false);
       return;
     }
@@ -187,7 +187,7 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
                 onChange={e => setUrl(e.target.value)}
                 className="w-full h-11 pl-11 pr-4 rounded-xl bg-surface-container text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-high shadow-inner transition-all" 
                 id="videoUrlInput" 
-                placeholder="YouTube veya TikTok URL'sini buraya yapıştır..." 
+                placeholder="YouTube, TikTok veya Resim bağlantısı (Pinterest, vs) yapıştır..."
                 type="text" 
               />
             </div>

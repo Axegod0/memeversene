@@ -8,7 +8,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok';
+  video_type: 'youtube' | 'tiktok' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;
@@ -59,7 +59,7 @@ export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
         
         {/* Media Container */}
         <div className="relative w-full rounded-xl bg-surface-container-lowest overflow-hidden shadow-2xl group border border-outline-variant/10">
-          <div className={`relative w-full flex items-center justify-center bg-surface-container-lowest ${post.video_type === 'tiktok' ? 'h-[500px] max-w-md mx-auto' : 'aspect-video'}`}>
+          <div className={`relative w-full flex items-center justify-center bg-black/5 ${post.video_type === 'tiktok' ? 'h-[500px] max-w-md mx-auto' : post.video_type === 'image' ? 'max-h-[600px] bg-transparent' : 'aspect-video'}`}>
             {post.video_type === 'youtube' && (
               <iframe 
                 className="w-full h-full"
@@ -77,6 +77,13 @@ export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
                 frameBorder="0" 
                 allowFullScreen
               ></iframe>
+            )}
+            {post.video_type === 'image' && (
+              <img 
+                src={post.video_id} 
+                alt={post.caption} 
+                className="w-full h-auto max-h-[600px] object-contain" 
+              />
             )}
           </div>
         </div>

@@ -9,7 +9,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok';
+  video_type: 'youtube' | 'tiktok' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;

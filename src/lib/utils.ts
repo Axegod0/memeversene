@@ -1,4 +1,4 @@
-export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | null, id: string | null } {
+export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'image' | null, id: string | null } {
   if (!url) return { type: null, id: null };
 
   // YouTube Parser
@@ -12,8 +12,11 @@ export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | null,
   if (tiktokMatch && tiktokMatch[1]) {
     return { type: 'tiktok', id: tiktokMatch[1] };
   }
-  // Short tiktok urls (vm.tiktok.com) would ideally need server-side resolution, 
-  // but for now we'll just handle standard ones or let the user know.
+  // Image Parser (Pinterest, Imgur, general images)
+  // Check if it ends with an image extension or contains known image domains
+  if (url.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || url.includes('pinimg.com/')) {
+    return { type: 'image', id: url }; // For images, we use the full url as the ID
+  }
 
   return { type: null, id: null };
 }
