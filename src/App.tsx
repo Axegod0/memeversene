@@ -69,8 +69,8 @@ function App() {
     <BrowserRouter>
       <Layout username={profile?.username} onLogout={() => supabase.auth.signOut()}>
         <Routes>
-          <Route path="/" element={<Home currentUsername={profile?.username} />} />
-          <Route path="/rooms/:roomSlug" element={<Home currentUsername={profile?.username} />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/rooms/:roomSlug" element={<Home />} />
           <Route path="/u/:username" element={<Profile />} />
           <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/messages" element={<Messages />} />

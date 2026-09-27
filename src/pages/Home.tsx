@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { parseVideoUrl } from '../lib/utils';
 import { PostCard } from '../components/PostCard';
 import { AdSlot } from '../components/AdSlot';
 
@@ -19,7 +18,7 @@ interface Post {
   rooms?: { name: string };
 }
 
-export function Home({ currentUsername }: { currentUsername?: string }) {
+export function Home() {
   const { roomSlug } = useParams<{ roomSlug?: string }>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [sortBy, setSortBy] = useState<'hot' | 'new'>('new');

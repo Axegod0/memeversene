@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { PostCard } from '../components/PostCard';
 
 interface Post {
   id: string;
@@ -27,12 +26,9 @@ export function Profile() {
   const { username } = useParams<{ username?: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [userVotes, setUserVotes] = useState<Record<string, number>>({});
-
   useEffect(() => {
     if (username) {
       fetchProfileAndPosts(username);
-      fetchUserVotes();
     }
   }, [username]);
 
@@ -57,48 +53,7 @@ export function Profile() {
     }
   };
 
-  const fetchUserVotes = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
 
-    const { data } = await supabase
-      .from('votes')
-      .select('post_id, vote_type')
-      .eq('user_id', user.id);
-
-    if (data) {
-      const votesMap: Record<string, number> = {};
-      data.forEach(v => {
-        votesMap[v.post_id] = v.vote_type;
-      });
-      setUserVotes(votesMap);
-    }
-  };
-
-  const handleVote = async (postId: string, voteType: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert('Oy vermek için giriş yapmalısınız!');
-
-    const currentVote = userVotes[postId] || 0;
-    
-    let newVoteType = voteType;
-    if (currentVote === voteType) {
-      newVoteType = 0;
-    }
-
-    try {
-      if (newVoteType === 0) {
-        await supabase.from('votes').delete().match({ user_id: user.id, post_id: postId });
-      } else {
-        await supabase.from('votes').upsert({ user_id: user.id, post_id: postId, vote_type: newVoteType });
-      }
-
-      setUserVotes(prev => ({ ...prev, [postId]: newVoteType }));
-      fetchProfileAndPosts(username as string);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   if (!profile) return <div className="text-on-surface p-10">Profil yükleniyor veya bulunamadı...</div>;
 

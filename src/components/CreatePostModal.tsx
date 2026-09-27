@@ -20,7 +20,6 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
   const [url, setUrl] = useState('');
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Live preview parsing
   const parsedPreview = url ? parseVideoUrl(url) : null;

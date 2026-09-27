@@ -188,14 +188,19 @@ export function PostDetail() {
               {/* Media Content */}
               <div className="relative bg-surface-container-lowest w-full group overflow-hidden">
                 <div className="relative w-full aspect-video flex items-center justify-center bg-surface-container-lowest">
-                  <ReactPlayer 
-                    url={post.video_url}
-                    width="100%"
-                    height="100%"
-                    controls={true}
-                    light={false}
-                    className="absolute top-0 left-0"
-                  />
+                  {(() => {
+                    const Player = ReactPlayer as any;
+                    return (
+                      <Player 
+                        url={post.video_url}
+                        width="100%"
+                        height="100%"
+                        controls={true}
+                        light={false}
+                        className="absolute top-0 left-0"
+                      />
+                    );
+                  })()}
                   {/* Decorative overlays for native look (disabled for full player functionality, but kept in code for design references)
                   <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-90"></div>
                   */}
