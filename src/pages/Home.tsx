@@ -151,11 +151,16 @@ export function Home() {
     // Call Supabase RPC or just delete/insert manually if RPC is not available
     // Assuming simple client-side handling for now:
     try {
+      let err = null;
       if (newVoteType === 0) {
-        await supabase.from('votes').delete().match({ user_id: user.id, post_id: postId });
+        const { error } = await supabase.from('votes').delete().match({ user_id: user.id, post_id: postId });
+        err = error;
       } else {
-        await supabase.from('votes').upsert({ user_id: user.id, post_id: postId, vote_type: newVoteType });
+        const { error } = await supabase.from('votes').upsert({ user_id: user.id, post_id: postId, vote_type: newVoteType });
+        err = error;
       }
+
+      if (err) throw err;
 
       // Update local state optimistic
       setUserVotes(prev => ({ ...prev, [postId]: newVoteType }));

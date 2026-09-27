@@ -138,7 +138,9 @@ CREATE POLICY "Users and admins can delete posts" ON public.posts FOR DELETE USI
   )
 );
 CREATE POLICY "Users can insert comments" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can manage their own votes" ON public.votes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own votes" ON public.votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own votes" ON public.votes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own votes" ON public.votes FOR DELETE USING (auth.uid() = user_id);
 
 -- Automatic Profile Creation Trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user() 

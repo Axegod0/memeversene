@@ -121,11 +121,15 @@ export function PostDetail() {
     });
 
     try {
+      let err = null;
       if (newVoteType === 0) {
-        await supabase.from('votes').delete().match({ user_id: user.id, post_id: id });
+        const { error } = await supabase.from('votes').delete().match({ user_id: user.id, post_id: id });
+        err = error;
       } else {
-        await supabase.from('votes').upsert({ user_id: user.id, post_id: id, vote_type: newVoteType });
+        const { error } = await supabase.from('votes').upsert({ user_id: user.id, post_id: id, vote_type: newVoteType });
+        err = error;
       }
+      if (err) throw err;
     } catch (err) {
       console.error(err);
       fetchPost();
