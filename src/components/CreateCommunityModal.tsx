@@ -9,6 +9,7 @@ interface CreateCommunityModalProps {
 export function CreateCommunityModal({ onClose, onSuccess }: CreateCommunityModalProps) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +41,7 @@ export function CreateCommunityModal({ onClose, onSuccess }: CreateCommunityModa
         { 
           name, 
           slug,
+          is_public: isPublic,
           owner_id: userData.user.id
         }
       ])
@@ -127,6 +129,21 @@ export function CreateCommunityModal({ onClose, onSuccess }: CreateCommunityModa
               />
             </div>
             <span className="text-label-sm text-outline">Sadece küçük harf, rakam, tire ve alt çizgi. (Örn: m/turk-oyuncular)</span>
+          </div>
+
+          <div className="flex flex-col gap-2 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 mt-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container"
+              />
+              <div className="flex flex-col">
+                <span className="font-label-lg font-bold text-on-surface">Açık Topluluk (Public)</span>
+                <span className="text-body-sm text-on-surface-variant leading-tight">Bu topluluktaki paylaşımlar ana sayfada (Keşfet) görünür. Kapatılırsa sadece doğrudan bu topluluğa girenler görebilir.</span>
+              </div>
+            </label>
           </div>
 
           <div className="pt-2">

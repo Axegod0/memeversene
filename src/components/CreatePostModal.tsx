@@ -84,13 +84,30 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
       return;
     }
 
+    let finalVideoUrl = url;
+    let finalVideoType = type;
+
+    if (type === 'tiktok') {
+      try {
+        const res = await fetch(`https://tikwm.com/api/?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data && data.data && data.data.play) {
+          finalVideoUrl = data.data.play;
+          finalVideoType = 'tiktok_native';
+        }
+      } catch (err) {
+        console.error('Failed to fetch native tiktok video', err);
+        // Fallback to regular tiktok embed if api fails
+      }
+    }
+
     const { error } = await supabase.from('posts').insert([
       {
         user_id: userData.user.id,
         room_id: selectedRoomId,
         caption,
-        video_url: url,
-        video_type: type,
+        video_url: finalVideoUrl,
+        video_type: finalVideoType,
         video_id: id,
         upvotes: 0,
       }

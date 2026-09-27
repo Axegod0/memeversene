@@ -8,7 +8,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok' | 'image';
+  video_type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;
@@ -20,9 +20,11 @@ interface PostCardProps {
   post: Post;
   onVote: (postId: string, voteType: number) => void;
   userVote?: number; // 1 for upvote, -1 for downvote, 0 for none
+  canDelete?: boolean;
+  onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
+export function PostCard({ post, onVote, userVote = 0, canDelete, onDelete }: PostCardProps) {
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: tr });
   
   return (
@@ -59,7 +61,7 @@ export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
         
         {/* Media Container */}
         <div className="relative w-full rounded-xl bg-surface-container-lowest overflow-hidden shadow-2xl group border border-outline-variant/10">
-          <div className={`relative w-full flex items-center justify-center bg-black/5 ${post.video_type === 'tiktok' ? 'h-[500px] max-w-md mx-auto' : post.video_type === 'image' ? 'max-h-[600px] bg-transparent' : 'aspect-video'}`}>
+          <div className={`relative w-full flex items-center justify-center bg-black/5 ${(post.video_type === 'tiktok' || post.video_type === 'tiktok_native') ? 'h-[500px] max-w-md mx-auto' : post.video_type === 'image' ? 'max-h-[600px] bg-transparent' : 'aspect-video'}`}>
             {post.video_type === 'youtube' && (
               <iframe 
                 className="w-full h-full"
@@ -77,6 +79,16 @@ export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
                 frameBorder="0" 
                 allowFullScreen
               ></iframe>
+            )}
+            {post.video_type === 'tiktok_native' && (
+              <video 
+                src={post.video_url} 
+                className="w-full h-full object-cover" 
+                controls
+                preload="metadata"
+                loop
+                playsInline
+              />
             )}
             {post.video_type === 'image' && (
               <img 
@@ -122,9 +134,21 @@ export function PostCard({ post, onVote, userVote = 0 }: PostCardProps) {
             </button>
           </div>
           
-          <button aria-label="Kaydet" className="w-9 h-9 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-outline hover:text-primary flex items-center justify-center transition-colors">
-            <span className="material-symbols-outlined text-headline-sm">bookmark</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button aria-label="Kaydet" className="w-9 h-9 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-outline hover:text-primary flex items-center justify-center transition-colors">
+              <span className="material-symbols-outlined text-headline-sm">bookmark</span>
+            </button>
+            {canDelete && onDelete && (
+              <button 
+                onClick={() => onDelete(post.id)}
+                aria-label="Sil" 
+                className="w-9 h-9 rounded-xl bg-surface-container/70 hover:bg-error-container/50 text-outline hover:text-error flex items-center justify-center transition-colors"
+                title="Postu Sil"
+              >
+                <span className="material-symbols-outlined text-headline-sm">delete</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </article>

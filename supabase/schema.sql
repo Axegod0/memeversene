@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
   avatar_url TEXT DEFAULT '',
   banner_url TEXT DEFAULT '',
   owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  is_public BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -50,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
   room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
   caption TEXT NOT NULL,
   video_url TEXT NOT NULL,
-  video_type TEXT NOT NULL CHECK (video_type IN ('youtube', 'tiktok', 'image')),
+  video_type TEXT NOT NULL CHECK (video_type IN ('youtube', 'tiktok', 'tiktok_native', 'image')),
   video_id TEXT NOT NULL,
   upvotes INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -127,6 +128,15 @@ CREATE POLICY "Admins can update room members" ON public.room_members FOR UPDATE
 );
 
 CREATE POLICY "Users can insert posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users and admins can delete posts" ON public.posts FOR DELETE USING (
+  auth.uid() = user_id OR
+  EXISTS (
+    SELECT 1 FROM public.room_members 
+    WHERE room_id = posts.room_id 
+    AND user_id = auth.uid() 
+    AND role IN ('owner', 'admin')
+  )
+);
 CREATE POLICY "Users can insert comments" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own votes" ON public.votes FOR ALL USING (auth.uid() = user_id);
 

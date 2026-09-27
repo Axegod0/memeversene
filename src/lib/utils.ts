@@ -1,4 +1,4 @@
-export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'image' | null, id: string | null } {
+export function parseVideoUrl(url: string): { type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image' | null, id: string | null } {
   if (!url) return { type: null, id: null };
 
   // YouTube Parser

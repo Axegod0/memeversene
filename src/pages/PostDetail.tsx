@@ -9,7 +9,7 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok' | 'image';
+  video_type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;
@@ -34,6 +34,8 @@ export function PostDetail() {
   const [newComment, setNewComment] = useState('');
   const [userVote, setUserVote] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -63,8 +65,20 @@ export function PostDetail() {
       .single();
     if (!error && data) {
       setPost(data as Post);
+      fetchPermissions(data.room_id);
     }
     setLoading(false);
+  };
+
+  const fetchPermissions = async (roomId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setCurrentUserId(user.id);
+    if (!roomId) return;
+    const { data } = await supabase.from('room_members').select('role').eq('room_id', roomId).eq('user_id', user.id).single();
+    if (data) {
+      setUserRole(data.role);
+    }
   };
 
   const fetchComments = async () => {
@@ -137,6 +151,17 @@ export function PostDetail() {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!confirm('Bu postu silmek istediğinize emin misiniz?')) return;
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (!error) {
+      // Redirect to home or room
+      window.location.href = post?.rooms?.slug ? `/rooms/${post.rooms.slug}` : '/';
+    } else {
+      alert('Hata: ' + error.message);
+    }
+  };
+
   if (loading) return <div className="p-10 text-center text-on-surface">Yükleniyor...</div>;
   if (!post) return <div className="p-10 text-center text-on-surface">Gönderi bulunamadı.</div>;
 
@@ -187,12 +212,21 @@ export function PostDetail() {
 
               {/* Media Content */}
               <div className="relative bg-surface-container-lowest w-full group overflow-hidden flex justify-center bg-black/5">
-                <div className={`relative w-full flex items-center justify-center bg-surface-container-lowest ${post.video_type === 'image' ? 'bg-transparent' : 'aspect-video'}`}>
+                <div className={`relative w-full flex items-center justify-center bg-surface-container-lowest ${(post.video_type === 'image' || post.video_type === 'tiktok_native') ? 'bg-transparent' : 'aspect-video'}`}>
                   {post.video_type === 'image' ? (
                     <img 
                       src={post.video_id} 
                       alt={post.caption} 
                       className="w-full h-auto max-h-[700px] object-contain" 
+                    />
+                  ) : post.video_type === 'tiktok_native' ? (
+                    <video 
+                      src={post.video_url} 
+                      className="w-full h-auto max-h-[700px] object-contain" 
+                      controls
+                      preload="metadata"
+                      loop
+                      playsInline
                     />
                   ) : (() => {
                     const Player = ReactPlayer as any;
@@ -245,6 +279,16 @@ export function PostDetail() {
                   <button className="p-2 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-outline hover:text-error transition-colors border border-outline-variant/20" title="Bildir" type="button">
                     <span className="material-symbols-outlined text-headline-sm">flag</span>
                   </button>
+                  {(post.user_id === currentUserId || userRole === 'owner' || userRole === 'admin') && (
+                    <button 
+                      onClick={handleDeletePost}
+                      className="p-2 rounded-xl bg-surface-container-low hover:bg-error-container/50 text-outline hover:text-error transition-colors border border-outline-variant/20" 
+                      title="Sil" 
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-headline-sm">delete</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </article>

@@ -24,6 +24,8 @@ export function Home() {
   const [sortBy, setSortBy] = useState<'hot' | 'new'>('new');
   const [userVotes, setUserVotes] = useState<Record<string, number>>({});
   const [currentRoom, setCurrentRoom] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRoomRoles, setUserRoomRoles] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (roomSlug) {
@@ -35,7 +37,7 @@ export function Home() {
 
   useEffect(() => {
     fetchPosts();
-    fetchUserVotes();
+    fetchUserData();
 
     // Set up realtime subscription
     const channel = supabase.channel('public:posts')
@@ -47,32 +49,53 @@ export function Home() {
     };
   }, [roomSlug, sortBy]);
 
-  const fetchUserVotes = async () => {
+  const fetchUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setCurrentUserId(user.id);
 
-    const { data } = await supabase
+    // Fetch votes
+    const { data: votesData } = await supabase
       .from('votes')
       .select('post_id, vote_type')
       .eq('user_id', user.id);
 
-    if (data) {
+    if (votesData) {
       const votesMap: Record<string, number> = {};
-      data.forEach(v => {
+      votesData.forEach(v => {
         votesMap[v.post_id] = v.vote_type;
       });
       setUserVotes(votesMap);
+    }
+
+    // Fetch roles
+    const { data: rolesData } = await supabase
+      .from('room_members')
+      .select('room_id, role')
+      .eq('user_id', user.id);
+      
+    if (rolesData) {
+      const rolesMap: Record<string, string> = {};
+      rolesData.forEach(r => {
+        rolesMap[r.room_id] = r.role;
+      });
+      setUserRoomRoles(rolesMap);
     }
   };
 
   const fetchPosts = async () => {
     let query = supabase
       .from('posts')
-      .select('*, profiles!posts_user_id_fkey(username), rooms(name, slug)');
+      .select('*, profiles!posts_user_id_fkey(username), rooms(name, slug, is_public)');
 
     if (roomSlug) {
       // Find room id first or join with rooms
       query = query.eq('rooms.slug', roomSlug);
+    } else {
+      // If we are on the global feed, ONLY show public rooms OR posts without a room
+      // Since PostgREST eq on joined table works but can be tricky, we'll do client-side filter
+      // because PostgREST eq on left join sometimes doesn't filter the primary table unless !inner is used.
+      // But we can't easily use !inner conditionally while preserving posts without rooms.
     }
 
     if (sortBy === 'hot') {
@@ -85,7 +108,13 @@ export function Home() {
     
     if (!error && data) {
       // Supabase inner join workaround: if rooms.slug filter doesn't exclude nulls, we filter manually
-      const filteredData = roomSlug ? data.filter(p => p.rooms?.slug === roomSlug) : data;
+      let filteredData = data;
+      if (roomSlug) {
+        filteredData = data.filter(p => p.rooms?.slug === roomSlug);
+      } else {
+        // Only show posts from public rooms or posts with no room
+        filteredData = data.filter(p => p.rooms?.is_public !== false);
+      }
       setPosts(filteredData as Post[]);
     }
   };
@@ -119,7 +148,15 @@ export function Home() {
     }
   };
 
-
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Bu postu silmek istediğinize emin misiniz?')) return;
+    const { error } = await supabase.from('posts').delete().eq('id', postId);
+    if (!error) {
+      setPosts(posts.filter(p => p.id !== postId));
+    } else {
+      alert('Hata: ' + error.message);
+    }
+  };
 
   return (
     <>
@@ -225,16 +262,23 @@ export function Home() {
             Henüz burada bir şey yok. İlk gönderiyi sen oluştur!
           </div>
         ) : (
-          posts.map((post, idx) => (
-            <React.Fragment key={post.id}>
-              {idx > 0 && idx % 3 === 0 && <AdSlot type="feed" />}
-              <PostCard 
-                post={post} 
-                onVote={handleVote}
-                userVote={userVotes[post.id]}
-              />
-            </React.Fragment>
-          ))
+          posts.map((post, idx) => {
+            const isOwner = post.user_id === currentUserId;
+            const isMod = post.room_id && ['owner', 'admin'].includes(userRoomRoles[post.room_id] || '');
+            
+            return (
+              <React.Fragment key={post.id}>
+                {idx > 0 && idx % 3 === 0 && <AdSlot type="feed" />}
+                <PostCard 
+                  post={post} 
+                  onVote={handleVote}
+                  userVote={userVotes[post.id]}
+                  canDelete={!!(isOwner || isMod)}
+                  onDelete={handleDeletePost}
+                />
+              </React.Fragment>
+            );
+          })
         )}
       </div>
     </>

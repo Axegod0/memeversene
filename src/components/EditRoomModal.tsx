@@ -13,6 +13,7 @@ export function EditRoomModal({ room, onClose, onSuccess }: EditRoomModalProps) 
   const [bannerUrl, setBannerUrl] = useState(room.banner_url || '');
   const [rules, setRules] = useState<string[]>([]);
   const [newRule, setNewRule] = useState('');
+  const [isPublic, setIsPublic] = useState(room.is_public ?? true);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +56,7 @@ export function EditRoomModal({ room, onClose, onSuccess }: EditRoomModalProps) 
         description,
         avatar_url: avatarUrl,
         banner_url: bannerUrl,
+        is_public: isPublic,
         rules: JSON.stringify(rules)
       })
       .eq('id', room.id)
@@ -162,6 +164,21 @@ export function EditRoomModal({ room, onClose, onSuccess }: EditRoomModalProps) 
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="flex flex-col gap-2 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container"
+              />
+              <div className="flex flex-col">
+                <span className="font-label-lg font-bold text-on-surface">Açık Topluluk (Public)</span>
+                <span className="text-body-sm text-on-surface-variant leading-tight">Bu topluluktaki paylaşımlar ana sayfada (Keşfet) görünür. Kapatılırsa sadece doğrudan bu topluluğa girenler görebilir.</span>
+              </div>
+            </label>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container-highest">
