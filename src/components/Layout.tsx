@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { CreatePostModal } from './CreatePostModal';
 import { CreateCommunityModal } from './CreateCommunityModal';
+import { EditRoomModal } from './EditRoomModal';
 import { AdSlot } from './AdSlot';
 import { supabase } from '../lib/supabase';
 
@@ -12,12 +13,20 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const location = useLocation();
   const [myRooms, setMyRooms] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentRoom, setCurrentRoom] = useState<any>(null);
+  const [isEditRoomModalOpen, setIsEditRoomModalOpen] = useState(false);
+
+  // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
+  const match = location.pathname.match(/\/rooms\/([^/]+)/);
+  const currentRoomSlug = match ? match[1] : null;
 
   // Toplulukları getir
   useEffect(() => {
     const fetchMyRooms = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+      setCurrentUser(userData.user);
       
       const { data, error } = await supabase
         .from('room_members')
@@ -33,10 +42,13 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
     fetchMyRooms();
   }, [isCreateCommunityModalOpen]); // Modal kapanınca yenile
 
-
-  // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
-  const match = location.pathname.match(/\/rooms\/([^/]+)/);
-  const currentRoomSlug = match ? match[1] : null;
+  useEffect(() => {
+    if (currentRoomSlug) {
+      supabase.from('rooms').select('*').eq('slug', currentRoomSlug).single().then(({data}) => setCurrentRoom(data));
+    } else {
+      setCurrentRoom(null);
+    }
+  }, [currentRoomSlug, isEditRoomModalOpen]);
 
   return (
     <div className="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
@@ -333,19 +345,37 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                 </>
               ) : (
                 <>
-                  {location.pathname.startsWith('/rooms/') ? (
+                  {location.pathname.startsWith('/rooms/') && currentRoom ? (
                     <>
                   {/* Room Specific Right Sidebar */}
                   <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md shadow-lg flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-headline-sm font-headline-sm font-bold text-on-surface">
-                        <span className="material-symbols-outlined text-primary">info</span>
-                        <span>Topluluk Hakkında</span>
+                    {currentRoom.banner_url && (
+                      <div className="-mx-space-md -mt-space-md h-24 rounded-t-xl overflow-hidden mb-[-1rem]">
+                        <img src={currentRoom.banner_url} alt="Banner" className="w-full h-full object-cover" />
                       </div>
-                      <span className="text-label-sm font-label-sm text-outline">Ekim 2021</span>
+                    )}
+                    <div className="flex items-center justify-between z-10">
+                      <div className="flex items-center gap-3">
+                        {currentRoom.avatar_url ? (
+                          <img src={currentRoom.avatar_url} alt="Avatar" className="w-12 h-12 rounded-lg object-cover bg-surface-container shadow-md" />
+                        ) : (
+                          <div className="flex items-center gap-2 text-headline-sm font-headline-sm font-bold text-on-surface">
+                            <span className="material-symbols-outlined text-primary">info</span>
+                            <span>Topluluk Hakkında</span>
+                          </div>
+                        )}
+                      </div>
+                      {currentUser?.id === currentRoom.owner_id && (
+                        <button onClick={() => setIsEditRoomModalOpen(true)} className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                      )}
                     </div>
+                    {currentRoom.avatar_url && (
+                      <div className="font-headline-sm font-bold text-on-surface mt-1">{currentRoom.name}</div>
+                    )}
                     <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                      m/{currentRoomSlug}, Türkiye'nin ve internet kültürünün en orijinal görsel ve video mizah topluluğudur. Günde binlerce yeni içerik, yüzbinlerce reaksiyon.
+                      {currentRoom.description || `${currentRoom.name} topluluğuna hoş geldiniz!`}
                     </p>
                     <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-container shadow-inner border border-outline-variant/15">
                       <div className="flex flex-col">
@@ -383,10 +413,23 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <div className="p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container transition-colors border border-outline-variant/10">
-                        <p className="font-label-md text-label-md font-bold text-on-surface">1. Özgün ve komik ol</p>
-                        <p className="font-body-sm text-body-sm text-outline mt-0.5">Düşük eforlu veya bayatlamış şablonlar kaldırılır.</p>
-                      </div>
+                      {currentRoom.rules && currentRoom.rules !== '[]' && currentRoom.rules !== '' ? (
+                        (() => {
+                          try {
+                            const parsedRules = JSON.parse(currentRoom.rules);
+                            return parsedRules.map((rule: string, i: number) => (
+                              <div key={i} className="p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container transition-colors border border-outline-variant/10">
+                                <p className="font-label-md text-label-md font-bold text-on-surface">{i + 1}. Kural</p>
+                                <p className="font-body-sm text-body-sm text-outline mt-0.5">{rule}</p>
+                              </div>
+                            ));
+                          } catch {
+                            return <p className="text-body-sm text-on-surface-variant">Kurallar okunamadı.</p>;
+                          }
+                        })()
+                      ) : (
+                        <p className="text-body-sm text-on-surface-variant">Henüz kural belirlenmemiş.</p>
+                      )}
                     </div>
                   </div>
                 </>
@@ -451,6 +494,17 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
           onSuccess={(slug) => {
             setIsCreateCommunityModalOpen(false);
             window.location.href = `/rooms/${slug}`;
+          }}
+        />
+      )}
+
+      {isEditRoomModalOpen && currentRoom && (
+        <EditRoomModal
+          room={currentRoom}
+          onClose={() => setIsEditRoomModalOpen(false)}
+          onSuccess={(updated) => {
+            setCurrentRoom(updated);
+            setIsEditRoomModalOpen(false);
           }}
         />
       )}

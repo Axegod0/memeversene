@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS public.rooms (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
+  description TEXT DEFAULT '',
+  rules TEXT DEFAULT '[]',
+  avatar_url TEXT DEFAULT '',
+  banner_url TEXT DEFAULT '',
   owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
