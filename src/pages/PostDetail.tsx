@@ -36,6 +36,7 @@ export function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isVoting, setIsVoting] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) {
@@ -107,8 +108,12 @@ export function PostDetail() {
   };
 
   const handleVote = async (voteType: number) => {
+    if (isVoting) return;
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert('Oy vermek için giriş yapmalısınız!');
+
+    setIsVoting(true);
 
     let newVoteType = voteType;
     if (userVote === voteType) newVoteType = 0;
@@ -134,6 +139,8 @@ export function PostDetail() {
       console.error(err);
       fetchPost();
       fetchUserVote();
+    } finally {
+      setIsVoting(false);
     }
   };
 

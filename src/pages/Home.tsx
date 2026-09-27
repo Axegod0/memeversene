@@ -26,6 +26,7 @@ export function Home() {
   const [currentRoom, setCurrentRoom] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRoomRoles, setUserRoomRoles] = useState<Record<string, string>>({});
+  const [votingPostId, setVotingPostId] = useState<string | null>(null);
 
   useEffect(() => {
     if (roomSlug) {
@@ -137,19 +138,28 @@ export function Home() {
   };
 
   const handleVote = async (postId: string, voteType: number) => {
+    if (votingPostId === postId) return;
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert('Oy vermek için giriş yapmalısınız!');
 
+    setVotingPostId(postId);
     const currentVote = userVotes[postId] || 0;
     
     let newVoteType = voteType;
     if (currentVote === voteType) {
-      // Cancel vote
       newVoteType = 0;
     }
 
-    // Call Supabase RPC or just delete/insert manually if RPC is not available
-    // Assuming simple client-side handling for now:
+    // APPLY OPTIMISTIC UI IMMEDIATELY BEFORE ASYNC WAIT
+    setUserVotes(prev => ({ ...prev, [postId]: newVoteType }));
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return { ...p, upvotes: p.upvotes - currentVote + newVoteType };
+      }
+      return p;
+    }));
+
     try {
       let err = null;
       if (newVoteType === 0) {
@@ -161,19 +171,18 @@ export function Home() {
       }
 
       if (err) throw err;
-
-      // Update local state optimistic
-      setUserVotes(prev => ({ ...prev, [postId]: newVoteType }));
+    } catch (err) {
+      console.error(err);
+      // REVERT OPTIMISTIC UI ON FAILURE
+      setUserVotes(prev => ({ ...prev, [postId]: currentVote }));
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
-          return { ...p, upvotes: p.upvotes - currentVote + newVoteType };
+          return { ...p, upvotes: p.upvotes + currentVote - newVoteType };
         }
         return p;
       }));
-      // fetchPosts(); // Removed to rely on optimistic UI and realtime
-    } catch (err) {
-      console.error(err);
-      fetchPosts(); // Refetch on error
+    } finally {
+      setVotingPostId(null);
     }
   };
 
