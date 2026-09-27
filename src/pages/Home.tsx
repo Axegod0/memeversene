@@ -23,6 +23,15 @@ export function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [sortBy, setSortBy] = useState<'hot' | 'new'>('new');
   const [userVotes, setUserVotes] = useState<Record<string, number>>({});
+  const [currentRoom, setCurrentRoom] = useState<any>(null);
+
+  useEffect(() => {
+    if (roomSlug) {
+      supabase.from('rooms').select('*').eq('slug', roomSlug).single().then(({data}) => setCurrentRoom(data));
+    } else {
+      setCurrentRoom(null);
+    }
+  }, [roomSlug]);
 
   useEffect(() => {
     fetchPosts();
@@ -118,15 +127,19 @@ export function Home() {
       {roomSlug && (
         <div className="relative w-full rounded-2xl overflow-hidden bg-surface-container-low shadow-xl mb-6">
           <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-surface-container-lowest">
-            <div className="absolute inset-0 bg-cover bg-center opacity-65" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80')" }}></div>
+            <div className="absolute inset-0 bg-cover bg-center opacity-65" style={{ backgroundImage: `url('${currentRoom?.banner_url || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80'}')` }}></div>
             <div className="absolute inset-0 bg-gradient-to-t from-surface-container-low via-surface-container-low/40 to-transparent"></div>
             <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
           </div>
           <div className="px-5 sm:px-8 pb-6 -mt-16 sm:-mt-12 relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="flex items-start sm:items-end gap-4 sm:gap-6 min-w-0">
               <div className="relative shrink-0">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-surface-container-high flex items-center justify-center text-4xl sm:text-5xl shadow-2xl ring-4 ring-surface-container-low select-none">
-                  {roomSlug === 'genel' ? '⚡' : roomSlug === 'mizah' ? '😂' : roomSlug === 'oyun' ? '🎮' : '💻'}
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-surface-container-high flex items-center justify-center text-4xl sm:text-5xl shadow-2xl ring-4 ring-surface-container-low select-none overflow-hidden">
+                  {currentRoom?.avatar_url ? (
+                    <img src={currentRoom.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    roomSlug === 'genel' ? '⚡' : roomSlug === 'mizah' ? '😂' : roomSlug === 'oyun' ? '🎮' : '💻'
+                  )}
                 </div>
                 <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 ring-4 ring-surface-container-low flex items-center justify-center" title="Aktif Oda">
                   <span className="w-2 h-2 rounded-full bg-surface-container-lowest"></span>
@@ -140,7 +153,7 @@ export function Home() {
                   </span>
                 </div>
                 <p className="font-body-md text-body-md text-on-surface-variant truncate max-w-xl mt-1">
-                  MemeVersene'nin {roomSlug} topluluğu. Keşfet, paylaş, upvote topla!
+                  {currentRoom?.description || `MemeVersene'nin ${roomSlug} topluluğu. Keşfet, paylaş, upvote topla!`}
                 </p>
                 <div className="flex items-center gap-4 sm:gap-6 text-label-md font-label-md text-outline mt-3">
                   <div className="flex items-center gap-1.5">
