@@ -19,6 +19,7 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   const [moderators, setModerators] = useState<any[]>([]);
   const [isEditRoomModalOpen, setIsEditRoomModalOpen] = useState(false);
   const [isManageMembersModalOpen, setIsManageMembersModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Extract roomSlug from /rooms/:slug URL to pass it automatically to modal
   const match = location.pathname.match(/\/rooms\/([^/]+)/);
@@ -45,18 +46,17 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
     fetchMyRooms();
   }, [isCreateCommunityModalOpen]); // Modal kapanınca yenile
 
+  const [memberCount, setMemberCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState(0);
+
   useEffect(() => {
     if (currentRoomSlug) {
       supabase.from('rooms').select('*').eq('slug', currentRoomSlug).single().then(({data}) => setCurrentRoom(data));
-      
-      // Fetch moderators
-      supabase.from('room_members')
-        .select('role, profiles(username)')
-        .eq('rooms.slug', currentRoomSlug) // Wait, we need room_id. Let's fetch using roomSlug via join
-        // Actually, we can just fetch it after currentRoom is set
     } else {
       setCurrentRoom(null);
       setModerators([]);
+      setMemberCount(0);
+      setOnlineCount(0);
     }
   }, [currentRoomSlug, isEditRoomModalOpen]);
 
@@ -69,8 +69,36 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
         .then(({data}) => {
           if (data) setModerators(data);
         });
+
+      supabase.from('room_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', currentRoom.id)
+        .then(({count}) => setMemberCount(count || 0));
+
+      const roomChannel = supabase.channel(`room:${currentRoom.id}`, {
+        config: {
+          presence: {
+            key: currentUser?.id || 'guest-' + Math.random().toString(36).substring(7),
+          },
+        },
+      });
+
+      roomChannel
+        .on('presence', { event: 'sync' }, () => {
+          const newState = roomChannel.presenceState();
+          setOnlineCount(Object.keys(newState).length);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await roomChannel.track({ online_at: new Date().toISOString() });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(roomChannel);
+      };
     }
-  }, [currentRoom, isManageMembersModalOpen]);
+  }, [currentRoom, isManageMembersModalOpen, currentUser]);
 
   return (
     <div className="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
@@ -205,10 +233,15 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
         </div>
       </header>
       
-      <div className="w-full max-w-[1440px] mx-auto px-4 pt-16">
+      <div className="w-full max-w-[1440px] mx-auto px-4 pt-16 md:pb-6 pb-20">
         <div className="flex items-start gap-space-lg" id="main-layout-container">
-          <aside className="w-64 shrink-0 hidden lg:block sticky top-[64px] h-[calc(100vh-64px)] overflow-y-auto py-space-md" id="left-sidebar">
-            <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md mb-space-md">
+          <aside className={`${isMobileMenuOpen ? 'fixed inset-0 z-[100] bg-background/95 backdrop-blur-xl p-6 pt-14 flex h-screen w-full' : 'w-64 shrink-0 hidden lg:block'} sticky top-[64px] md:h-[calc(100vh-64px)] overflow-y-auto py-space-md`} id="left-sidebar">
+            {isMobileMenuOpen && (
+              <button onClick={() => setIsMobileMenuOpen(false)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface z-10 shadow-lg">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            )}
+            <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md mb-space-md relative w-full max-w-sm mx-auto md:max-w-none md:mx-0">
               <div className="text-label-sm font-label-sm uppercase tracking-wider text-outline mb-space-sm px-2">Gezinme</div>
               <nav className="flex flex-col gap-1">
                 <NavLink to="/" end className={({isActive}) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-body-md transition-colors ${isActive ? 'bg-primary-container text-on-primary-container font-bold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}>
@@ -230,7 +263,7 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
               </nav>
             </div>
             
-            <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md flex flex-col gap-2">
+            <div className="p-space-md rounded-xl bg-surface-container-low/70 border border-outline-variant/20 backdrop-blur-md flex flex-col gap-2 relative w-full max-w-sm mx-auto md:max-w-none md:mx-0">
                 <div className="flex items-center justify-between px-2 pt-1 pb-1">
                   <span className="text-label-sm font-label-sm uppercase tracking-wider text-outline">Topluluklar / Odalar</span>
                   <button 
@@ -408,12 +441,12 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                     </p>
                     <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-container shadow-inner border border-outline-variant/15">
                       <div className="flex flex-col">
-                        <span className="font-headline-md text-headline-md font-bold text-on-surface">320,412</span>
+                        <span className="font-headline-md text-headline-md font-bold text-on-surface">{memberCount.toLocaleString('tr-TR')}</span>
                         <span className="font-label-sm text-label-sm text-outline">Kayıtlı Üye</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-1">
-                          4,831
+                          {onlineCount.toLocaleString('tr-TR')}
                           <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
                         </span>
                         <span className="font-label-sm text-label-sm text-outline">Çevrimiçi</span>
@@ -553,6 +586,31 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
           onClose={() => setIsManageMembersModalOpen(false)}
         />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-[68px] bg-surface-container-lowest/90 backdrop-blur-xl border-t border-surface-container-highest flex items-center justify-around z-[90] px-2 shadow-[0_-4px_24px_rgba(0,0,0,0.4)] pb-safe">
+        <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={`flex flex-col items-center justify-center w-14 h-12 transition-colors ${location.pathname === '/' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: location.pathname === '/' ? "'FILL' 1" : "'FILL' 0" }}>home</span>
+          <span className="text-[10px] font-bold mt-0.5">Ana Sayfa</span>
+        </Link>
+        <button onClick={() => setIsMobileMenuOpen(true)} className={`flex flex-col items-center justify-center w-14 h-12 transition-colors ${isMobileMenuOpen ? 'text-primary' : 'text-outline hover:text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isMobileMenuOpen ? "'FILL' 1" : "'FILL' 0" }}>explore</span>
+          <span className="text-[10px] font-bold mt-0.5">Keşfet</span>
+        </button>
+        <button onClick={() => setIsCreateModalOpen(true)} className="flex flex-col items-center justify-center w-14 h-12 text-primary transition-colors relative -top-4">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-secondary to-primary-container shadow-[0_4px_16px_rgba(224,135,152,0.4)] flex items-center justify-center text-on-primary-container hover:scale-105 active:scale-95 transition-transform">
+            <span className="material-symbols-outlined text-[26px]">add</span>
+          </div>
+        </button>
+        <Link to="/messages" onClick={() => setIsMobileMenuOpen(false)} className={`flex flex-col items-center justify-center w-14 h-12 transition-colors ${location.pathname === '/messages' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: location.pathname === '/messages' ? "'FILL' 1" : "'FILL' 0" }}>chat</span>
+          <span className="text-[10px] font-bold mt-0.5">Sohbet</span>
+        </Link>
+        <Link to={`/u/${username || 'anon'}`} onClick={() => setIsMobileMenuOpen(false)} className={`flex flex-col items-center justify-center w-14 h-12 transition-colors ${location.pathname.startsWith('/u/') ? 'text-primary' : 'text-outline hover:text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: location.pathname.startsWith('/u/') ? "'FILL' 1" : "'FILL' 0" }}>person</span>
+          <span className="text-[10px] font-bold mt-0.5">Profil</span>
+        </Link>
+      </div>
     </div>
   );
 }
