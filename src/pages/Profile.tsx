@@ -26,6 +26,8 @@ export function Profile() {
   const { username } = useParams<{ username?: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (username) {
       fetchProfileAndPosts(username);
@@ -33,13 +35,19 @@ export function Profile() {
   }, [username]);
 
   const fetchProfileAndPosts = async (uname: string) => {
+    setLoading(true);
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('username', uname)
       .single();
 
-    if (profileError || !profileData) return;
+    if (profileError || !profileData) {
+      console.error(profileError);
+      setLoading(false);
+      return;
+    }
+    
     setProfile(profileData);
 
     const { data: postsData, error: postsError } = await supabase
@@ -51,11 +59,11 @@ export function Profile() {
     if (!postsError && postsData) {
       setPosts(postsData as Post[]);
     }
+    setLoading(false);
   };
 
-
-
-  if (!profile) return <div className="text-on-surface p-10">Profil yükleniyor veya bulunamadı...</div>;
+  if (loading) return <div className="text-on-surface p-10 flex justify-center">Profil yükleniyor...</div>;
+  if (!profile) return <div className="text-on-surface p-10 flex justify-center font-bold text-error">Profil bulunamadı. Kullanıcı adı yanlış veya hesap silinmiş olabilir.</div>;
 
   const getDaysAgo = (dateStr: string) => {
     const diff = new Date().getTime() - new Date(dateStr).getTime();

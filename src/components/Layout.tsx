@@ -127,6 +127,10 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                     </button>
                     
                     <button 
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        alert("Ayarlar sayfası henüz geliştirme aşamasındadır. Yakında şifre, tema ve kullanıcı adı değişikliklerinizi buradan yapabileceksiniz.");
+                      }}
                       className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-highest hover:text-primary transition-colors w-full text-left"
                       type="button"
                     >
@@ -135,11 +139,15 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                     </button>
                     
                     <button 
+                      onClick={() => {
+                        document.documentElement.classList.toggle('dark');
+                        setIsProfileMenuOpen(false);
+                      }}
                       className="flex items-center gap-3 px-4 py-2.5 text-on-surface hover:bg-surface-container-highest hover:text-primary transition-colors w-full text-left"
                       type="button"
                     >
                       <span className="material-symbols-outlined text-headline-sm">dark_mode</span>
-                      <span className="font-label-md text-label-md font-bold">Tema (Yakında)</span>
+                      <span className="font-label-md text-label-md font-bold">Tema Değiştir</span>
                     </button>
                     
                     <div className="h-px bg-surface-container-highest my-1"></div>
