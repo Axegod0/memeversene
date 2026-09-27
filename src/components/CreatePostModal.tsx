@@ -20,6 +20,8 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
   const [url, setUrl] = useState('');
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState('');
 
   // Live preview parsing
   const parsedPreview = url ? parseVideoUrl(url) : null;
@@ -68,6 +70,8 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
     }
 
     setLoading(true);
+    setLoadingStatus('Medya bağlantısı analiz ediliyor...');
+    setProgress(10);
     const parsed = parseVideoUrl(url);
     if (!parsed || !parsed.type) {
       alert('Sadece YouTube, TikTok veya Resim bağlantıları desteklenmektedir.');
@@ -75,8 +79,10 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
       return;
     }
 
+    setProgress(30);
     const { type, id } = parsed;
     
+    setLoadingStatus('Hesap bilgileri doğrulanıyor...');
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
       alert('Oturumunuz bulunamadı.');
@@ -88,6 +94,8 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
     let finalVideoType = type;
 
     if (type === 'tiktok') {
+      setLoadingStatus('TikTok medyası indiriliyor...');
+      setProgress(50);
       try {
         const res = await fetch(`https://tikwm.com/api/?url=${encodeURIComponent(url)}`);
         const data = await res.json();
@@ -101,32 +109,45 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
       }
     }
 
-    const { error } = await supabase.from('posts').insert([
-      {
-        user_id: userData.user.id,
-        room_id: selectedRoomId,
-        caption,
-        video_url: finalVideoUrl,
-        video_type: finalVideoType,
-        video_id: id,
-        upvotes: 0,
-      }
-    ]);
+    setProgress(80);
+    setLoadingStatus('Gönderi yayınlanıyor...');
 
-    setLoading(false);
-    if (!error) {
-      onClose(); // Realtime trigger will auto-update the feed!
+    const newPostData = {
+      user_id: userData.user.id,
+      room_id: selectedRoomId,
+      caption,
+      video_url: finalVideoUrl,
+      video_type: finalVideoType,
+      video_id: id,
+      upvotes: 0,
+    };
+
+    const { data: insertedPost, error } = await supabase.from('posts').insert([newPostData]).select('*, profiles!posts_user_id_fkey(username), rooms(name, slug, is_public)').single();
+
+    setProgress(100);
+    setLoadingStatus('Yüklendi!');
+
+    if (!error && insertedPost) {
+      // Optimistic UI Dispatch
+      window.dispatchEvent(new CustomEvent('postCreated', { detail: insertedPost }));
+      setTimeout(() => {
+        setLoading(false);
+        onClose();
+      }, 400); // Küçük bir gecikme ile tamamlandı hissi ver
     } else {
-      alert('Post paylaşılırken bir hata oluştu: ' + error.message);
+      setLoading(false);
+      alert('Post paylaşılırken bir hata oluştu: ' + error?.message);
     }
   };
 
   const selectedRoom = rooms.find(r => r.id === selectedRoomId);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="absolute w-[560px] h-[560px] rounded-full bg-primary/10 blur-[130px] pointer-events-none -top-12"></div>
-      <div className="absolute w-[440px] h-[440px] rounded-full bg-secondary-container/20 blur-[110px] pointer-events-none bottom-10"></div>
+    <>
+      <div className="fixed inset-0 z-[100] bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div className="absolute w-[560px] h-[560px] rounded-full bg-primary/10 blur-[130px] pointer-events-none -top-12"></div>
+        <div className="absolute w-[440px] h-[440px] rounded-full bg-secondary-container/20 blur-[110px] pointer-events-none bottom-10"></div>
+        
       
       <div className="relative w-full max-w-[740px] my-auto rounded-2xl bg-surface-container-low shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_40px_rgba(224,135,152,0.18)] overflow-hidden flex flex-col">
         {/* Top Subtle Rose Gold Accent Strip */}
@@ -273,6 +294,32 @@ export function CreatePostModal({ onClose, defaultRoomSlug }: CreatePostModalPro
           </div>
         </div>
       </div>
-    </div>
+      </div>
+
+      {loading && (
+        <div className="fixed inset-0 z-[200] bg-surface-container-lowest/70 backdrop-blur-xl flex flex-col items-center justify-center p-4">
+          <div className="flex flex-col items-center justify-center p-8 rounded-3xl bg-surface-container-low shadow-2xl border border-outline-variant/30 w-full max-w-[320px] animate-in fade-in zoom-in-95 duration-300">
+            <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="transparent" stroke="currentColor" strokeWidth="8" className="text-surface-container-highest" />
+                <circle 
+                  cx="50" cy="50" r="45" fill="transparent" stroke="currentColor" strokeWidth="8" 
+                  className="text-primary drop-shadow-[0_0_8px_rgba(224,135,152,0.6)] transition-all duration-300 ease-out" 
+                  strokeDasharray={`${2 * Math.PI * 45}`} 
+                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress / 100)}`} 
+                  strokeLinecap="round" 
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-headline-md font-bold text-on-surface">{progress}%</span>
+              </div>
+            </div>
+            
+            <h3 className="font-headline-sm font-bold text-on-surface text-center mb-2">{progress === 100 ? 'Yüklendi!' : 'Yükleniyor'}</h3>
+            <p className="text-body-sm text-on-surface-variant text-center max-w-[240px] h-5">{loadingStatus}</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

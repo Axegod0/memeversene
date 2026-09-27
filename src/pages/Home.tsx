@@ -10,12 +10,12 @@ interface Post {
   room_id: string;
   caption: string;
   video_url: string;
-  video_type: 'youtube' | 'tiktok' | 'image';
+  video_type: 'youtube' | 'tiktok' | 'tiktok_native' | 'image';
   video_id: string;
   upvotes: number;
   created_at: string;
   profiles?: { username: string };
-  rooms?: { name: string };
+  rooms?: { name: string; slug: string; is_public: boolean };
 }
 
 export function Home() {
@@ -39,13 +39,30 @@ export function Home() {
     fetchPosts();
     fetchUserData();
 
-    // Set up realtime subscription
+    // Optimistic UI for instant post appearance without reload/refresh
+    const handlePostCreated = (e: any) => {
+      const newPost = e.detail as Post;
+      // Sadece bulunduğumuz odanın postuysa veya genel akıştaysak ve post public ise ekle
+      if (roomSlug) {
+        if (newPost.rooms?.slug === roomSlug) {
+          setPosts(prev => [newPost, ...prev]);
+        }
+      } else {
+        if (newPost.rooms?.is_public !== false) {
+          setPosts(prev => [newPost, ...prev]);
+        }
+      }
+    };
+    window.addEventListener('postCreated', handlePostCreated);
+
+    // Set up realtime subscription (as a fallback, though optimistic UI will handle our own posts)
     const channel = supabase.channel('public:posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, fetchPosts)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('postCreated', handlePostCreated);
     };
   }, [roomSlug, sortBy]);
 
