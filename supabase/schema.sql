@@ -100,6 +100,7 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 CREATE POLICY "Users can insert rooms" ON public.rooms FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Users can update their own rooms" ON public.rooms FOR UPDATE USING (auth.uid() = owner_id);
 CREATE POLICY "Users can insert room members" ON public.room_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
