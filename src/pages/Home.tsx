@@ -68,7 +68,7 @@ export function Home() {
   const fetchPosts = async () => {
     let query = supabase
       .from('posts')
-      .select('*, profiles(username), rooms(name, slug)');
+      .select('*, profiles!posts_user_id_fkey(username), rooms(name, slug)');
 
     if (roomSlug) {
       // Find room id first or join with rooms

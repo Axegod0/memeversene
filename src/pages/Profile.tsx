@@ -61,7 +61,7 @@ export function Profile() {
 
     const { data: postsData, error: postsError } = await supabase
       .from('posts')
-      .select('*, profiles(username), rooms(name, slug)')
+      .select('*, profiles!posts_user_id_fkey(username), rooms(name, slug)')
       .eq('user_id', profileData.id)
       .order('created_at', { ascending: false });
 

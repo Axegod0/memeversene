@@ -74,29 +74,6 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
         .select('*', { count: 'exact', head: true })
         .eq('room_id', currentRoom.id)
         .then(({count}) => setMemberCount(count || 0));
-
-      const roomChannel = supabase.channel(`room:${currentRoom.id}`, {
-        config: {
-          presence: {
-            key: currentUser?.id || 'guest-' + Math.random().toString(36).substring(7),
-          },
-        },
-      });
-
-      roomChannel
-        .on('presence', { event: 'sync' }, () => {
-          const newState = roomChannel.presenceState();
-          setOnlineCount(Object.keys(newState).length);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await roomChannel.track({ online_at: new Date().toISOString() });
-          }
-        });
-
-      return () => {
-        supabase.removeChannel(roomChannel);
-      };
     }
   }, [currentRoom, isManageMembersModalOpen, currentUser]);
 
@@ -439,18 +416,9 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
                     <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
                       {currentRoom.description || `${currentRoom.name} topluluğuna hoş geldiniz!`}
                     </p>
-                    <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-container shadow-inner border border-outline-variant/15">
-                      <div className="flex flex-col">
-                        <span className="font-headline-md text-headline-md font-bold text-on-surface">{memberCount.toLocaleString('tr-TR')}</span>
-                        <span className="font-label-sm text-label-sm text-outline">Kayıtlı Üye</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-1">
-                          {onlineCount.toLocaleString('tr-TR')}
-                          <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
-                        </span>
-                        <span className="font-label-sm text-label-sm text-outline">Çevrimiçi</span>
-                      </div>
+                    <div className="flex flex-col p-3 rounded-xl bg-surface-container shadow-inner border border-outline-variant/15 text-center">
+                      <span className="font-headline-md text-headline-md font-bold text-on-surface">{memberCount.toLocaleString('tr-TR')}</span>
+                      <span className="font-label-sm text-label-sm text-outline">Kayıtlı Üye</span>
                     </div>
                     {/* Moderators */}
                     <div className="flex flex-col gap-2 pt-1 border-t border-outline-variant/20">

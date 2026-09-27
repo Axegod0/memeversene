@@ -58,7 +58,7 @@ export function PostDetail() {
   const fetchPost = async () => {
     const { data, error } = await supabase
       .from('posts')
-      .select('*, profiles(username), rooms(name, slug)')
+      .select('*, profiles!posts_user_id_fkey(username), rooms(name, slug)')
       .eq('id', id)
       .single();
     if (!error && data) {
@@ -70,7 +70,7 @@ export function PostDetail() {
   const fetchComments = async () => {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(username)')
+      .select('*, profiles!comments_user_id_fkey(username)')
       .eq('post_id', id)
       .order('created_at', { ascending: false });
     if (!error && data) {
