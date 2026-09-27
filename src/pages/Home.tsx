@@ -159,9 +159,16 @@ export function Home() {
 
       // Update local state optimistic
       setUserVotes(prev => ({ ...prev, [postId]: newVoteType }));
-      fetchPosts(); // Refetch to get updated counts
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return { ...p, upvotes: p.upvotes - currentVote + newVoteType };
+        }
+        return p;
+      }));
+      // fetchPosts(); // Removed to rely on optimistic UI and realtime
     } catch (err) {
       console.error(err);
+      fetchPosts(); // Refetch on error
     }
   };
 

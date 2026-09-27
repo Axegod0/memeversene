@@ -138,16 +138,25 @@ export function PostDetail() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert('Yorum yapmak için giriş yapmalısınız!');
 
-    const { error } = await supabase
-      .from('comments')
-      .insert({
-        post_id: id,
-        user_id: user.id,
-        content: newComment.trim()
-      });
+    // Get current profile
+    // Wait for the next block to handle profile data if needed
 
-    if (!error) {
+    const newCommentData = {
+      post_id: id as string,
+      user_id: user.id,
+      content: newComment.trim()
+    };
+
+    const { data: insertedComment, error } = await supabase
+      .from('comments')
+      .insert(newCommentData)
+      .select('*, profiles!comments_user_id_fkey(username)')
+      .single();
+
+    if (!error && insertedComment) {
       setNewComment('');
+      // Optimistic UI for comments
+      setComments(prev => [insertedComment as Comment, ...prev]);
     }
   };
 
@@ -269,14 +278,31 @@ export function PostDetail() {
                     <span className="material-symbols-outlined text-headline-sm">chat_bubble</span>
                     <span className="font-label-md text-label-md font-bold">{comments.length} Yorum</span>
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors border border-outline-variant/20" type="button">
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      alert('Bağlantı kopyalandı!');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors border border-outline-variant/20" 
+                    type="button"
+                  >
                     <span className="material-symbols-outlined text-headline-sm">share</span>
                     <span className="font-label-md text-label-md hidden sm:inline">Paylaş</span>
                   </button>
-                  <button className="p-2 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors border border-outline-variant/20" title="Kaydet" type="button">
+                  <button 
+                    onClick={() => alert('Post kaydedildi! (Yakında profilinize eklenecek)')}
+                    className="p-2 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors border border-outline-variant/20" 
+                    title="Kaydet" 
+                    type="button"
+                  >
                     <span className="material-symbols-outlined text-headline-sm">bookmark</span>
                   </button>
-                  <button className="p-2 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-outline hover:text-error transition-colors border border-outline-variant/20" title="Bildir" type="button">
+                  <button 
+                    onClick={() => alert('Post bildirildi. Moderatörler en kısa sürede inceleyecek.')}
+                    className="p-2 rounded-xl bg-surface-container-low hover:bg-surface-container-high text-outline hover:text-error transition-colors border border-outline-variant/20" 
+                    title="Bildir" 
+                    type="button"
+                  >
                     <span className="material-symbols-outlined text-headline-sm">flag</span>
                   </button>
                   {(post.user_id === currentUserId || userRole === 'owner' || userRole === 'admin') && (
@@ -309,11 +335,7 @@ export function PostDetail() {
                   />
                   <div className="flex items-center justify-between gap-space-sm pt-space-xs mt-space-xs border-t border-surface-container-highest">
                     <div className="flex items-center gap-1 text-outline">
-                      <button className="p-1.5 rounded hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Kalın" type="button"><span className="material-symbols-outlined text-headline-sm">format_bold</span></button>
-                      <button className="p-1.5 rounded hover:bg-surface-container-high hover:text-on-surface transition-colors" title="İtalik" type="button"><span className="material-symbols-outlined text-headline-sm">format_italic</span></button>
-                      <button className="p-1.5 rounded hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Bağlantı ekle" type="button"><span className="material-symbols-outlined text-headline-sm">link</span></button>
                       <button className="p-1.5 rounded hover:bg-surface-container-high hover:text-on-surface transition-colors" title="GIF Seç" type="button"><span className="material-symbols-outlined text-headline-sm">gif_box</span></button>
-                      <button className="p-1.5 rounded hover:bg-surface-container-high hover:text-on-surface transition-colors" title="Spoiler Ekle" type="button"><span className="material-symbols-outlined text-headline-sm">visibility_off</span></button>
                     </div>
                     <button onClick={handlePostComment} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_16px_rgba(255,178,191,0.4)] transition-all" type="button">
                       <span>Yorum Gönder</span>

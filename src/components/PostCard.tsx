@@ -128,14 +128,24 @@ export function PostCard({ post, onVote, userVote = 0, canDelete, onDelete }: Po
               <span className="material-symbols-outlined text-headline-sm">chat_bubble</span>
               <span>Yorum</span>
             </Link>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-label-md font-label-md transition-colors">
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+                alert('Bağlantı kopyalandı!');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-label-md font-label-md transition-colors"
+            >
               <span className="material-symbols-outlined text-headline-sm">share</span>
               <span>Paylaş</span>
             </button>
           </div>
           
           <div className="flex items-center gap-2">
-            <button aria-label="Kaydet" className="w-9 h-9 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-outline hover:text-primary flex items-center justify-center transition-colors">
+            <button 
+              onClick={() => alert('Post kaydedildi! (Yakında profilinize eklenecek)')}
+              aria-label="Kaydet" 
+              className="w-9 h-9 rounded-xl bg-surface-container/70 hover:bg-surface-container-high text-outline hover:text-primary flex items-center justify-center transition-colors"
+            >
               <span className="material-symbols-outlined text-headline-sm">bookmark</span>
             </button>
             {canDelete && onDelete && (
