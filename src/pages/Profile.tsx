@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { EditProfileModal } from '../components/EditProfileModal';
 
 interface Post {
   id: string;
@@ -19,6 +20,7 @@ interface Post {
 interface Profile {
   id: string;
   username: string;
+  bio?: string;
   created_at: string;
 }
 
@@ -28,6 +30,7 @@ export function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (username) {
@@ -127,13 +130,16 @@ export function Profile() {
                 <div className="flex items-center gap-2 mt-1">
                   <span className="font-label-md text-label-md text-primary font-medium">u/{profile.username}</span>
                 </div>
+                {profile.bio && (
+                  <p className="mt-2 text-body-md text-on-surface-variant max-w-md">{profile.bio}</p>
+                )}
               </div>
             </div>
             
             {/* Action Controls */}
             <div className="flex items-center gap-3 shrink-0">
               {currentUser?.id === profile.id ? (
-                <button onClick={() => alert("Profil düzenleme özelliği yakında aktif olacak!")} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-label-lg font-label-lg transition-all shadow-md active:scale-95" type="button">
+                <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-label-lg font-label-lg transition-all shadow-md active:scale-95" type="button">
                   <span className="material-symbols-outlined text-headline-sm">edit</span>
                   <span>Profili Düzenle</span>
                 </button>
@@ -210,6 +216,20 @@ export function Profile() {
       </div>
 
 
+      {isEditing && (
+        <EditProfileModal
+          currentUsername={profile.username}
+          currentBio={profile.bio || ''}
+          onClose={() => setIsEditing(false)}
+          onSuccess={(newUsername, newBio) => {
+            setIsEditing(false);
+            setProfile(prev => prev ? { ...prev, username: newUsername, bio: newBio } : null);
+            if (newUsername !== profile.username) {
+              window.location.href = `/u/${newUsername}`;
+            }
+          }}
+        />
+      )}
     </>
   );
 }
