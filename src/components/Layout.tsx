@@ -47,7 +47,6 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
   }, [isCreateCommunityModalOpen]); // Modal kapanınca yenile
 
   const [memberCount, setMemberCount] = useState(0);
-  const [onlineCount, setOnlineCount] = useState(0);
 
   useEffect(() => {
     if (currentRoomSlug) {
@@ -56,7 +55,6 @@ export function Layout({ children, onLogout, username }: { children: ReactNode, 
       setCurrentRoom(null);
       setModerators([]);
       setMemberCount(0);
-      setOnlineCount(0);
     }
   }, [currentRoomSlug, isEditRoomModalOpen]);
 
